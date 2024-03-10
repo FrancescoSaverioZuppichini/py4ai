@@ -16,7 +16,7 @@ def plot_data(
     y_axis_lim,
     name="",
     output_file=None,
-    output_dir = None
+    output_dir=None,
 ):
     plt.style.use(["science"])
     df = pd.read_json(input_file, lines=True)

@@ -7,7 +7,7 @@
       "datefmt": "%Y-%m-%dT%H:%M:%S%z"
     },
     "json": {
-      "()": "lib.mylogger.MyJSONFormatter",
+      "()": "src.mylogger.MyJSONFormatter",
       "fmt_keys": {
         "level": "levelname",
         "message": "message",
