@@ -75,26 +75,140 @@ What are we going to learn?
 - 🛠️ **Augmentations** - CPU, GPU or both?
 
 <small> emoji made by our lord GPT-4</small>
+
 ---
-layout: image-right
-image: https://source.unsplash.com/collection/94734566/1920x1080
+layout: default
 ---
+
+# 🚧 Bottlenecks
+What happens when we load images?
+
+<div class="flex  gap-1 items-center justify-center" >
+  <img class="h-80 rounded" src="assets/bottlenecks.jpeg"/>
+</div>
+
+---
+layout: default
+---
+
+## Loading from Disk
+What to do?
+
+- get a fast disk (they are cheap now xD)
+- avoid opening too many file pointers
+- some tasks (object detections) comes with image/labels file pairs
+
+<div class="flex  gap-1 items-center justify-center mt-8" v-click>
+  <img class="h-40 rounded" src="assets/samsung_970.png"/>
+</div>
+
+<p v-click> we'll see how we can just have one file an `memmap` it u.u </p>
+
+
+---
+layout: default
+---
+
+## Memory
+What to do?
+
+- prob the best thing to optimize
+- we want to reduce page fault
+- we want to have contigous virtual memory allocation
+
+<p v-click> WTF is a `page`, what is `virtual memory`🤔 </p>
+
+---
+layout: default
+---
+
+### Memory - Review
+Let's review some system programming stuff hehehe
+
+- prob the best thing to optimize
+- we want to reduce page fault
+- we want to have contigous virtual memory allocation
+
+<p v-click> WTF is a `page`, what is `virtual memory`🤔 </p>
+---
+layout: default
+---
+
+### Memory
+What happens when we load images?
+
+---
+layout: default
+---
+
+# 📊 Benchmark
+How to benchmark in PyTorch?
 
 ---
 layout: default
 ---
  
-# Data Type
+# 🔢 Data Type
 
 Which data type? `uint8` or `float16`, which image quality?
+
 ---
 layout: default
 ---
  
 ## `uint8`
+Should I convert to `float16` before or after I send it to GPU?
 
-TODO add LI post
+```python {1|3|5|7|all} 
+x = torch.rand((batch_size, 3, 640, 480) * 255).to(torch.uint8)
+# better doing this, thanks Vincent 💜
+x = torch.zeroes((batch_size, 3, 640, 480), dtype=torch.uint8).random_()
+# then, it is better convert it and sending to gpu
+x.half().cuda()
+# or viceversa?
+x.cuda().half()
+```
 
+<p v-click>Raise your hand for <pre class="inline-block">x.half().cuda()</pre></p>
+<p v-click>Raise your hand for <pre class="inline-block">x.cuda().half()</pre></p>
+<h3 v-click>🤔🤔🤔🤔🤔🤔</h3>
+<h1 v-click>🤔🤔🤔🤔🤔🤔</h1>
+
+---
+layout: default
+---
+
+## `uint8`
+I've asked people
+
+<div class="flex  gap-1 items-center justify-center" >
+  <img class="h-70 rounded" src="assets/linkedin_pool.png"/>
+</div>
+
+
+---
+layout: default
+---
+
+## `uint8`
+Then benchmark it
+
+<div class="flex  gap-1 items-center justify-center" >
+  <img class="h-70 rounded" src="assets/image_to_cuda_benchmark_batch_size_vs_time.png"/>
+</div>
+
+---
+layout: default
+---
+
+## `uint8`
+So it is faster
+
+<p v-click>Yes but in reality we do stuff while we run the model</p>
+
+<div class="flex  gap-1 items-center justify-center" v-click >
+  <img class="h-70 rounded" src="assets/image_to_cuda_benchmark_batch_size_vs_time.png"/>
+</div>
 ---
 layout: default
 ---
