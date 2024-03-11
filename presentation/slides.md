@@ -205,9 +205,104 @@ layout: default
 So it is faster
 
 <p v-click>Yes but in reality we do stuff while we run the model</p>
+<p v-click> So, let's get a `Dataset` </p>
+<div v-click>
 
-<div class="flex  gap-1 items-center justify-center" v-click >
-  <img class="h-70 rounded" src="assets/image_to_cuda_benchmark_batch_size_vs_time.png"/>
+```python
+class DummyDataset(Dataset):
+    def __init__(self, num_images: int, img_size: Tuple[int, int]):
+        self.num_images = num_images
+        self.img_size = img_size
+
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
+        img = (torch.rand((3, *self.img_size)) * 255).to(dtype=torch.uint8)
+        label = torch.tensor(1)
+        return img, label
+
+    def __len__(self) -> int:
+        return self.num_images
+```
+
+</div>
+
+---
+layout: default
+---
+
+## `uint8`
+Some training code, `mixed precision` oc 😎
+
+```python {all|26,27|37,38,39|30,31|32,33|all}{lines:true,startLine:5,maxHeight:'40vh'}
+def run_model_train(
+    ds: Dataset,
+    batch_size: int,
+    model: nn.Module,
+    cuda_first: bool = True,
+    num_epoches: int = 1,
+    do_warmup: bool = True,
+):
+    model = model.cuda()
+    optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+    scaler = GradScaler()
+
+    dl = DataLoader(
+        ds, batch_size=batch_size, num_workers=min(batch_size, 8), pin_memory=True
+    )
+    criterion = nn.CrossEntropyLoss()
+    if do_warmup:
+        run_model_train(
+            ds, batch_size, model, cuda_first, num_epoches=4, do_warmup=False
+        )
+
+    with get_torch_profiler() as prof:
+        with record_function("run_model_train"):
+            for _ in range(num_epoches):
+                for images, labels in dl:
+                    if cuda_first:
+                        images = images.cuda().half()
+                    else:
+                        images = images.half().cuda()
+                    labels = labels.cuda()
+                    optimizer.zero_grad()
+
+                    with autocast(device_type="cuda", dtype=torch.float16):
+                        outputs = model(images)
+                        loss = criterion(outputs, labels)
+
+                    scaler.scale(loss).backward()
+                    scaler.step(optimizer)
+                    scaler.update()
+                end = perf_counter()
+    return prof
+```
+
+---
+layout: default
+---
+
+## `uint8`
+```python
+IMAGE_SIZES = [(384, 384), (640, 480), (1280, 960)]
+BATCH_SIZES = [8, 16, 32, 64]
+NUM_EPOCHES = 10
+```
+<div class="flex flex-col  gap-1 items-center justify-center">
+  <div class="flex  gap-1 items-center justify-center">
+    <img class="h-60 rounded" src="assets/image_to_cuda_model_train_model-cuda_first_batch_size_vs_time_384-384.png"/>
+    <img class="h-60 rounded" src="assets/image_to_cuda_model_train_model-cuda_first_batch_size_vs_time_640-480.png"/>
+  </div>
+</div>
+---
+layout: default
+---
+
+## `uint8`
+The bigger the image the bigger the difference
+
+<div class="flex flex-col  gap-1 items-center justify-center">
+  <div class="flex  gap-1 items-center justify-center">
+    <img class="h-80 rounded" src="assets/image_to_cuda_model_train_model-cuda_first_batch_size_vs_time_1280-960.png"/>
+  </div>
 </div>
 ---
 layout: default

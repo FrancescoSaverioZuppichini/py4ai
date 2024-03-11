@@ -17,6 +17,7 @@ def plot_data(
     name="",
     output_file=None,
     output_dir=None,
+    sort_by=None, 
 ):
     plt.style.use(["science"])
     df = pd.read_json(input_file, lines=True)
@@ -26,12 +27,15 @@ def plot_data(
         aggregated_df = df.groupby(aggregation_keys).sum().reset_index()
     elif aggregation_name == "count":
         aggregated_df = df.groupby(aggregation_keys).count().reset_index()
+    if sort_by:
+        aggregated_df = aggregated_df.sort_values(by=sort_by)
+    print(aggregated_df)
     plt.figure(figsize=(10, 6), dpi=300)
-    for key, grp in aggregated_df.groupby([group_by_name]):
+    for key, grp in aggregated_df.groupby(group_by_name):
         plt.plot(
             grp[x_axis],
             grp[y_axis],
-            label=f"{group_by_name.capitalize()} {key}",
+            label=f"{",".join([el for el in group_by_name])} {key}",
             marker="o",
         )
     plt.xlabel(x_axis.capitalize())
@@ -45,11 +49,11 @@ def plot_data(
             bottom=y_axis_lim[0], top=(y_axis_lim[1] if len(y_axis_lim) > 1 else None)
         )
     plt.title(
-        f"Plot of {y_axis.capitalize()} vs. {x_axis.capitalize()} for {group_by_name.capitalize()}"
+        f"Plot of {y_axis.capitalize()} vs. {x_axis.capitalize()} for {",".join([el.capitalize() for el in group_by_name])}"
     )
     plt.legend()
     if not output_file:
-        output_file = f"{name}_{group_by_name}_{x_axis}_vs_{y_axis}.png"
+        output_file = f"{name}_{"-".join([el for el in group_by_name])}_{x_axis}_vs_{y_axis}.png"
     if output_dir:
         output_file = str(output_dir / output_file)
     plt.savefig(output_file)
@@ -75,7 +79,7 @@ if __name__ == "__main__":
         help="Aggregation function",
     )
     parser.add_argument(
-        "--group_by_name", type=str, required=True, help="Key to group by for plotting"
+        "--group_by_name", nargs="+", required=True, help="Key to group by for plotting"
     )
     parser.add_argument(
         "--x_axis", type=str, required=True, help="Variable for the x-axis"
@@ -98,6 +102,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "--output_file", type=str, help="Optional output file name for the plot"
     )
+    parser.add_argument(
+        "--sort_by",
+        type=str,
+        help="Optional column name to sort the data"
+    )
 
     args = parser.parse_args()
     if args.output_dir:
@@ -115,4 +124,5 @@ if __name__ == "__main__":
         args.name,
         args.output_file,
         args.output_dir,
+        args.sort_by
     )
