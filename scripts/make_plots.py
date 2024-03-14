@@ -32,10 +32,11 @@ def plot_data(
     print(aggregated_df)
     plt.figure(figsize=(10, 6), dpi=300)
     for key, grp in aggregated_df.groupby(group_by_name):
+        print(group_by_name)
         plt.plot(
             grp[x_axis],
             grp[y_axis],
-            label=f"{",".join([el for el in group_by_name])} {key}",
+            label=f"{','.join([el for el in group_by_name])} {key}",
             marker="o",
         )
     plt.xlabel(x_axis.capitalize())
@@ -49,11 +50,11 @@ def plot_data(
             bottom=y_axis_lim[0], top=(y_axis_lim[1] if len(y_axis_lim) > 1 else None)
         )
     plt.title(
-        f"Plot of {y_axis.capitalize()} vs. {x_axis.capitalize()} for {",".join([el.capitalize() for el in group_by_name])}"
+        f"Plot of {y_axis.capitalize()} vs. {x_axis.capitalize()} for {','.join([el.capitalize() for el in group_by_name])}"
     )
     plt.legend()
     if not output_file:
-        output_file = f"{name}_{"-".join([el for el in group_by_name])}_{x_axis}_vs_{y_axis}.png"
+        output_file = f"{name}_{'-'.join([el for el in group_by_name])}_{x_axis}_vs_{y_axis}.png"
     if output_dir:
         output_file = str(output_dir / output_file)
     plt.savefig(output_file)

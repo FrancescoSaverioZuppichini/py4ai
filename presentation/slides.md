@@ -538,11 +538,25 @@ layout: default
 We can `memmap` it
 
 ```python
+# to disk!
 data.memmap("tensors/")
+# from disk - let's gooooo
+data.load_memmap("tensors/")
 ```
 
 <div class="flex flex-col gap-1 items-center justify-center mt-8">
-  <img class="h-40 rounded" src="assets/memmap.png"/>
+  <img class="h-30 rounded" src="assets/memmap.png"/>
+</div>
+
+---
+layout: default
+---
+ 
+## Memory Optimization
+Benchmark, `device="cpu"`
+
+<div class="flex flex-col gap-1 items-center justify-center mt-8">
+  <img class="h-80 rounded" src="assets/memmap_img_size-memmap_batch_size_vs_time.png"/>
 </div>
 
 ---

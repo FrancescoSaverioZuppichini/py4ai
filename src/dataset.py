@@ -10,7 +10,6 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision.io import read_image
 from tqdm import tqdm
 
-from src.dataset import FolderDataset
 
 
 class FolderDataset(Dataset):
@@ -50,6 +49,7 @@ class Data:
     def from_dataset(
         cls, out_dir: Path, dataset: FolderDataset, batch_size: int = 64
     ) -> Data:
+        out_dir.mkdir(exist_ok=True, parents=True)
         # borrow and adapted from https://pytorch.org/tensordict/tutorials/tensorclass_imagenet.html
         data = cls(
             images=MemoryMappedTensor.empty(
@@ -84,14 +84,29 @@ class Collate(nn.Module):
         super().__init__()
         self.device = device
 
-    @torch.inference_mode()
     def __call__(self, x: Data) -> Data:
-        out = x.pin_memory().to(self.device)
+        out = x
+        if self.device == "cuda":
+            out = x.to(self.device, non_blocking=True)
         return out
 
 
 if __name__ == "__main__":
-    ds = FolderDataset(Path("data/uncompressed"))
+    # ds = DummyDataset(num_images=10, img_size=(640, 480))
+    # print(ds[0])
+    ds = FolderDataset(Path("data/compressed_q:v3_640_480"))
     print(ds[0])
-    ds = DummyDataset(num_images=10, img_size=(640, 480))
-    print(ds[0])
+    ds = Data.from_dataset(Path("tensors") / ds.src.stem, ds)
+    batch_size = 8
+    dl = DataLoader(
+            ds,
+            batch_size,
+            num_workers=8,
+            # pin_memory=False if memmap else True,
+            collate_fn=Collate("cuda"),
+        )
+
+    for _ in range(2):
+        for batch in dl:
+            print(batch.images.device.type)
+
