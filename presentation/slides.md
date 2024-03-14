@@ -70,8 +70,8 @@ layout: default
 What are we going to learn?
 - 🚧 **Bottlenecks** - Finding bottleneck in our pipeline
 - 📊 **Benchmark** - Let's review how to benchmark PyTorch
-- 💾 **Memory Optimization** - What happens when we load images into RAM? 
 - 🔢 **Data Type** - Which data type should I use?
+- 💾 **Memory Optimization** - What happens when we load images into RAM? 
 - 🛠️ **Augmentations** - CPU, GPU or both?
 
 <small> emoji made by our lord GPT-4</small>
@@ -125,17 +125,40 @@ layout: default
 ### Memory - Review
 Let's review some system programming stuff hehehe
 
-- prob the best thing to optimize
-- we want to reduce page fault
-- we want to have contigous virtual memory allocation
+<div v-click>
+<h4 class="font-semibold">Page</h4>
+A page is a fixed-length contiguous block of virtual memory that represents the smallest unit of data for memory management in a virtual memory system
+</div>
 
-<p v-click> WTF is a `page`, what is `virtual memory`🤔 </p>
+<div v-click>
+<h4 class="font-semibold">Virtual memory</h4>
+Virtual memory is an abstraction of the computer's memory management system that allows an operating system to use both physical RAM and disk space to simulate a larger amount of memory, providing applications with more memory than is physically available on the system
+</div>
+
+<p v-click>OS will able to do page caching and access pattern optimization</p>
+
 ---
 layout: default
 ---
 
 ### Memory
-What happens when we load images?
+
+With normal `PyTorch`, we don't really take advantage of continous virtual memory
+
+<div class="flex items-center justify-center">
+  <img class="h-100 rounded" src="assets/virtual_memory_2.png"/>
+</div>
+
+---
+layout: default
+---
+
+### Memory
+If we `memmap` a file with all the images, in theory yes
+
+<div class="flex items-center justify-center">
+  <img class="h-100 rounded" src="assets/virtual_memory_1.png"/>
+</div>
 
 ---
 layout: default
@@ -144,6 +167,72 @@ layout: default
 # 📊 Benchmark
 How to benchmark in PyTorch?
 
+```python {all|6,7|9,10,11|13|14|17,18,19,20,21,22,23|24,25,26|all}{lines:true,maxHeight:'70%'}
+import torch
+import torchvision.models as models
+from torch.profiler import profile, record_function, ProfilerActivity
+from torch.profiler import schedule
+
+model = models.resnet18().cuda()
+inputs = torch.randn(5, 3, 224, 224).cuda()
+
+with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
+    with record_function("model_inference"):
+        model(inputs)
+
+print(prof.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=10))
+prof.export_chrome_trace("trace.json")
+
+# you can also create a schedule
+my_schedule = schedule(
+    skip_first=10,
+    wait=5,
+    warmup=1,
+    active=3,
+    repeat=2)
+
+with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], schedule=my_schedule) as prof:
+    with record_function("model_inference"):
+        model(inputs)
+```
+
+<a href="https://pytorch.org/tutorials/recipes/recipes/profiler_recipe.html">Documentation</a>
+
+---
+layout: default
+---
+## 📊 Benchmark
+Specify more `record_function`
+
+```python {all|5,6|all}{lines:true,maxHeight:'40vh'}
+model = models.resnet18().cuda()
+inputs = torch.randn(5, 3, 224, 224)
+
+with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
+    with record_function("inputs_to_cuda"):
+        inputs = inputs.cuda()
+    with record_function("model_inference"):
+        model(inputs)
+
+print(
+    prof.key_averages(group_by_input_shape=True).table(
+        sort_by="cpu_time_total", row_limit=10
+    )
+)
+prof.export_chrome_trace("trace2.json")
+```
+---
+layout: default
+---
+
+## 📊 Benchmark
+How to benchmark in PyTorch?
+
+Trace in `chrome://tracing`
+
+<div class="flex items-center justify-center">
+<img class="h-70 rounded" src="assets/trace.png"/>
+</div>
 ---
 layout: default
 ---
@@ -304,6 +393,60 @@ The bigger the image the bigger the difference
     <img class="h-80 rounded" src="assets/image_to_cuda_model_train_model-cuda_first_batch_size_vs_time_1280-960.png"/>
   </div>
 </div>
+
+---
+layout: default
+---
+## `uint8`
+What about data augmentation?
+
+```python {all|4|5,6,7,8,9|10,11|all}
+import torch
+import torchvision.transforms as T 
+
+x = torch.zeros((4, 3, 256, 256), dtype=torch.uint8)
+# they don't usually change the dtype, expecially if they just move pixels
+print(T.RandomCrop((224, 225))(x).dtype) # torch.uint8
+print(T.Resize((224, 225))(x).dtype) # torch.uint8
+print(T.RandomRotation(degrees=45)(x).dtype) # torch.uint8
+print(T.GaussianBlur(kernel_size=3)(x).dtype) # torch.uint8
+# but normalisation does it, you need to pass float
+print(T.Normalize(mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225])(x.half()).dtype) # torch.float16
+```
+<p v-click>
+Btw `PyTorch` transformations now support batches, if you pass a `torch.tensor`, they are just pytorch code and you can also export them with `onnx` - gg their engineers!
+</p>
+
+---
+layout: default
+---
+## `uint8`
+So what to do?
+
+<div v-click>
+Add normalisation in your model, also make it easier prod with `onnx` xD
+
+```python
+from torch import nn 
+from torchvision.models import resnet18
+
+model = nn.Sequential(T.Normalize(mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225]), resnet18()).half().cuda()
+# nn.Sequential is life, nn.Sequential is love
+print(model(x.cuda().half()).size()) # torch.Size([4, 1000])
+# if you export the model to onnx, gg you don't need to add weird code to normalise
+```
+</div>
+---
+layout: default
+---
+
+## Answers
+
+- ✅ `uint8`
+- ✅  normalise on the model
+
+<p v-click> What about image quality? </p>
+
 ---
 layout: default
 ---
@@ -319,8 +462,8 @@ ffmpeg -i "$file" -q:v 3 "$DEST_DIR/${filename}.jpg"
 We went from `3.5MB` to `207KB`. Can you spot the difference? 🕵️‍♂️
 
 <div class="flex  gap-1 items-center justify-center mt-8">
-  <img class="h-40 rounded" src="assets/grogu.jpg"/>
-  <img class="h-40 rounded" src="assets/grogu_compressed.jpg"/>
+  <img class="h-60 rounded" src="assets/grogu.jpg"/>
+  <img class="h-60 rounded" src="assets/grogu_compressed.jpg"/>
 </div>
 
 ---
@@ -345,35 +488,68 @@ class FolderDataset(Dataset):
         return len(self.files)
 ```
 
-and check the throughput for `.png` and `.jpeg`
+---
+layout: default
+---
+### Dataset
+and check the throughput for `uncompressed` and `compressed`
+<div class="flex  gap-1 items-center justify-center mt-8">
+  <img class="h-80 rounded" src="assets/compressed_vs_uncompressed_img_size-benchmark_batch_size_vs_time.png"/>
+</div>
 
 ---
 layout: default
 ---
  
-# Code
+# Memory Optimization
+Can we optimise memory?
 
-Use code snippets and get the highlighting directly, and even types hover![^1]
+Let' use `TensorDict`(made with 💜 by <a href="https://www.linkedin.com/in/vincent-moens-9bb91972/">Vincent Moens</a>)
 
-```ts {all|5|7|7-8|10|all} 
-// TwoSlash enables TypeScript hover information
-// and errors in markdown code blocks
-// More at https://shiki.style/packages/twoslash
+```python {all|1|4,5,6,7,8,9,10|all}{maxHeight:'60%'}
+from tensordict import TensorDict
+import torch
 
-import { computed, ref } from 'vue'
+data = TensorDict(
+    {
+        "key 1": torch.ones(3, 4, 5),
+        "key 2": torch.zeros(3, 4, 5, dtype=torch.bool),
+    },
+    batch_size=[3, 4],
+)
+print(data)
+# TensorDict(
+#     fields={
+#         key 1: Tensor(shape=torch.Size([3, 4, 5]), device=cpu, dtype=torch.float32, is_shared=False),
+#         key 2: Tensor(shape=torch.Size([3, 4, 5]), device=cpu, dtype=torch.bool, is_shared=False)},
+#     batch_size=torch.Size([3, 4]),
+#     device=None,
+#     is_shared=False)
 
-const count = ref(0)
-const doubled = computed(() => count.value * 2)
-
-doubled.value = 2
 ```
+
+<a href="https://github.com/pytorch/tensordict">Documentation</a>
+
 ---
 layout: default
 ---
  
-# Image
-bla
+## Memory Optimization
+We can `memmap` it
 
-<div class="flex items-center justify-center mt-20">
-<img class=" h-40 rounded shadow" src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Cat_August_2010-4.jpg/2560px-Cat_August_2010-4.jpg"/>
+```python
+data.memmap("tensors/")
+```
+
+<div class="flex flex-col gap-1 items-center justify-center mt-8">
+  <img class="h-40 rounded" src="assets/memmap.png"/>
+</div>
+
+---
+layout: default
+---
+ 
+<div class="flex flex-col gap-1 items-center justify-center h-full">
+  <h1> Thank you 💜</h1>
+  <img class="h-80 rounded" src="assets/baby_yoda_happy.gif"/>
 </div>

@@ -1,8 +1,9 @@
 import json
-import logging.config
 import logging
+import logging.config
 from typing import Optional
-from torch.profiler import profile, schedule, ProfilerActivity
+
+from torch.profiler import ProfilerActivity, profile, schedule
 
 
 def get_logger(logger_name: Optional[str] = None) -> logging.Logger:

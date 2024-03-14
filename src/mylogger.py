@@ -1,8 +1,9 @@
 import datetime as dt
-from rich.console import Console
-from rich.table import Table
 import json
 import logging
+
+from rich.console import Console
+from rich.table import Table
 from typing_extensions import override
 
 LOG_RECORD_BUILTIN_ATTRS = {

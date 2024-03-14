@@ -1,3 +1,4 @@
+from typing import Tuple
 import torch
 import torchvision.models as models
 from torch.profiler import profile, record_function, ProfilerActivity
@@ -16,133 +17,97 @@ from torch.nn.functional import interpolate
 os.environ["TORCH_COMPILE_DEBUG"] = "1"
 
 logger = get_logger()
+IMAGE_SIZES = [(640, 480), (1280, 960)]
+BATCH_SIZES = [8, 16, 32, 64]
+NUM_EPOCHES = 50
 
 
-def run_dataloader(ds: Dataset, batch_size: int):
-    dl = DataLoader(ds, batch_size, num_workers=8, pin_memory=True)
-    for _ in dl:
-        continue
+def run_dataloader(ds: Dataset, batch_size: int, num_epoches: int):
+    dl = DataLoader(ds, batch_size, num_workers=min(batch_size, 8), pin_memory=True)
+    # warmup
+    print("warmup ...")
+    for _ in range(4):
+        for _ in dl:
+            continue
+    print("done!")
     with get_torch_profiler() as prof:
         with record_function("run_dataloader"):
-            for _ in dl:
-                continue
+            for _ in range(num_epoches):
+                for _ in dl:
+                    continue
     return prof
 
 
-def run_model_train(ds: Dataset, batch_size: int, model: nn.Module):
+def run_model_train(
+    ds: Dataset,
+    batch_size: int,
+    model: nn.Module,
+    img_size: Tuple[int, int],
+    num_epoches: int = 1,
+    do_warmup: bool = True,
+):
     model = model.cuda()
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     scaler = GradScaler()
 
-    dl = DataLoader(ds, batch_size=batch_size, num_workers=8, pin_memory=True)
+    dl = DataLoader(
+        ds, batch_size=batch_size, num_workers=min(batch_size, 8), pin_memory=True
+    )
     criterion = nn.CrossEntropyLoss()
-    for images, labels in dl:
-        images = images[:, :3, :, :].half().cuda()
-        labels = labels.cuda()
+    if do_warmup:
+        print("warming up... ")
+        run_model_train(ds, batch_size, model, img_size, num_epoches=4, do_warmup=False)
+        print("done!")
 
-        optimizer.zero_grad()
-
-        with autocast(device_type="cuda", dtype=torch.float16):
-            images = interpolate(
-                images, size=(224, 224), mode="bilinear", align_corners=False
-            )
-            outputs = model(images)
-            loss = criterion(outputs, labels)
-
-        scaler.scale(loss).backward()
-        scaler.step(optimizer)
-        scaler.update()
     with get_torch_profiler() as prof:
         with record_function("run_model_train"):
-            for images, labels in dl:
-                images = images[:, :3, :, :].half().cuda()
-                labels = labels.cuda()
+            for _ in range(num_epoches):
+                for images, labels in dl:
+                    images = torch.nn.functional.interpolate(images, size=(img_size))
+                    images = images[:, :3, :, :].cuda().half()
+                    labels = labels.cuda()
 
-                optimizer.zero_grad()
+                    optimizer.zero_grad()
 
-                with autocast(device_type="cuda", dtype=torch.float16):
-                    images = interpolate(
-                        images, size=(224, 224), mode="bilinear", align_corners=False
-                    )
-                    outputs = model(images)
-                    loss = criterion(outputs, labels)
+                    with autocast(device_type="cuda", dtype=torch.float16):
+                        outputs = model(images)
+                        loss = criterion(outputs, labels)
 
-                scaler.scale(loss).backward()
-                scaler.step(optimizer)
-                scaler.update()
+                    scaler.scale(loss).backward()
+                    scaler.step(optimizer)
+                    scaler.update()
     return prof
 
 
 def do_benchmark():
-    ds = FolderDataset(Path("data/uncompressed"))
-    ds_compressed = FolderDataset(Path("data/compressed_q:v3"))
-    models = {"resnet101": resnet101(), "resnet50": resnet50(), "resnet18": resnet18()}
-    for batch_size in BATCH_SIZES:
-        prof = run_dataloader(ds, batch_size)
-        keys = prof.key_averages()
-        my_keys = list(filter(lambda e: e.key in ["run_dataloader"], keys))
-        for key in my_keys:
-            logger.info(
-                {
-                    "key": "compressed_vs_uncompressed",
-                    "benchmark": "uncompressed",
-                    "batch_size": batch_size,
-                    "name": key.key,
-                    "time": (key.cpu_time_total + key.cuda_time_total) / 1000,
-                }
-            )
-
-        prof = run_dataloader(ds_compressed, batch_size)
-        keys = prof.key_averages()
-        my_keys = list(filter(lambda e: e.key in ["run_dataloader"], keys))
-        for key in my_keys:
-            logger.info(
-                {
-                    "key": "compressed_vs_uncompressed",
-                    "benchmark": "compressed_q:v3",
-                    "batch_size": batch_size,
-                    "name": key.key,
-                    "time": (key.cpu_time_total + key.cuda_time_total) / 1000,
-                }
-            )
-    # lazy xD
-    for name, model in models.items():
-        for batch_size in [16, 32]:
-            print(batch_size, name)
-            prof = run_model_train(ds, batch_size, model)
-            keys = prof.key_averages()
-            my_keys = list(filter(lambda e: e.key in ["run_model_train"], keys))
-            for key in my_keys:
-                logger.info(
-                    {
-                        "key": "compressed_vs_uncompressed_model_train",
-                        "benchmark": f"uncompressed_{name}",
-                        "batch_size": batch_size,
-                        "name": key.key,
-                        "time": (key.cpu_time_total + key.cuda_time_total) / 1000,
-                    }
-                )
-
-            prof = run_model_train(ds_compressed, batch_size, model)
-            keys = prof.key_averages()
-            my_keys = list(filter(lambda e: e.key in ["run_model_train"], keys))
-            for key in my_keys:
-                logger.info(
-                    {
-                        "key": "compressed_vs_uncompressed_model_train",
-                        "benchmark": f"compressed_q:v3_{name}",
-                        "batch_size": batch_size,
-                        "name": key.key,
-                        "time": (key.cpu_time_total + key.cuda_time_total) / 1000,
-                    }
-                )
+    models = {"resnet18": resnet18, "resnet50": resnet50}
+    datasets_prefix = ["uncompressed", "compressed_q:v3"]
+    for dataset_prefix in datasets_prefix:
+        for img_size in IMAGE_SIZES:
+            img_size_str = f"{img_size[0]}-{img_size[1]}"
+            ds = FolderDataset(Path(f"{dataset_prefix}_{img_size_str}"))
+            for batch_size in BATCH_SIZES:
+                benchmark = f"{dataset_prefix}_{img_size_str}_{batch_size}"
+                print(f"Running {benchmark}")
+                prof = run_dataloader(ds, batch_size, num_epoches=NUM_EPOCHES)
+                keys = prof.key_averages()
+                my_keys = list(filter(lambda e: e.key in ["run_dataloader"], keys))
+                for key in my_keys:
+                    logger.info(
+                        {
+                            "key": "compressed_vs_uncompressed",
+                            "benchmark": dataset_prefix,
+                            "batch_size": batch_size,
+                            "img_size": ",".join([str(e) for e in img_size]),
+                            "name": key.key,
+                            "time": (key.cpu_time_total + key.cuda_time_total)
+                            / 1000
+                            / NUM_EPOCHES,
+                        }
+                    )
 
 
 do_benchmark()
-# jq 'select(.message.key == "compressed_vs_uncompressed")' logs/my_app.log.jsonl -c |
-# jq '.message' -c  > temp.jsonl && \
-# python scripts/make_plots.py --input_file temp.jsonl --aggregation_keys benchmark key name batch_size --group_by_name benchmark --x_axis batch_size --y_axis time --y_axis_lim 0  --name compressed_vs_uncompressed --output_dir plots
-
-# jq 'select(.message.key == "compressed_vs_uncompressed_model_train")' logs/my_app.log.jsonl -c |
-# jq '.message' -c  > temp.jsonl && \
-# python scripts/make_plots.py --input_file temp.jsonl --aggregation_keys benchmark key name batch_size --group_by_name benchmark --x_axis batch_size --y_axis time --y_axis_lim 0  --name compressed_vs_uncompressed --output_dir plots
+#  jq 'select(.message.key == "compressed_vs_uncompressed")' logs/my_app_compressed_vs_uncompressed.log.jsonl -c |
+#  jq '.message' -c  > temp.jsonl && \
+#  python scripts/make_plots.py --input_file temp.jsonl --aggregation_keys benchmark key name batch_size img_size --group_by_name img_size  benchmark --x_axis batch_size --y_axis time   --name compressed_vs_uncompressed --output_dir plots

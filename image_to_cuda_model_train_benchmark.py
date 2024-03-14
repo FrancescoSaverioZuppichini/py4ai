@@ -63,7 +63,6 @@ def run_model_train(
                     scaler.scale(loss).backward()
                     scaler.step(optimizer)
                     scaler.update()
-                end = perf_counter()
     return prof
 
 

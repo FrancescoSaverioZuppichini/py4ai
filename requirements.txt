@@ -2,3 +2,5 @@ typing_extensions
 rich
 SciencePlots
 pandas
+tqdm
+tensordict==0.3.1
