@@ -21,8 +21,6 @@ jobs:
 
       - name: Setup node
         uses: actions/setup-node@v4
-        with:
-          node-version-file: '20' # Make sure this points to the file within the presentation directory
 
       - name: Install dependencies
         run: cd presentation && npm install # Change directory to presentation before install
