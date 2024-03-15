@@ -31,7 +31,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
         with:
-          path: presentation/dist # Specify the correct path for the artifact
+          path: dist # Specify the correct path for the artifact
 
   deploy:
     needs: build
