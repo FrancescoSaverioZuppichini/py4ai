@@ -40,13 +40,13 @@ layout: default
 Senior Full Stack Machine Learning Engineer @Zurich Insurance
 
 <div class="flex flex-col gap-1 items-center justify-center mt-20">
-  <img class="h-40 rounded" src="assets/me.jpg"/>
+  <img class="h-40 rounded" src="./assets/me.jpg"/>
   <div class="flex gap-8 items-center justify-center mt-4">
-    <img class="h-12 rounded bg-white p-2" src="assets/pwc.png"/>
-    <img class="h-12 rounded bg-white p-2" src="assets/v7.png"/>
-    <img class="h-12 rounded bg-white p-2" src="assets/hf.png"/>
-    <img class="h-12 rounded bg-white p-2" src="assets/roboflow.jpeg"/>
-    <img class="h-12 rounded bg-white p-2" src="assets/zurich.png"/>
+    <img class="h-12 rounded bg-white p-2" src="./assets/pwc.png"/>
+    <img class="h-12 rounded bg-white p-2" src="./assets/v7.png"/>
+    <img class="h-12 rounded bg-white p-2" src="./assets/hf.png"/>
+    <img class="h-12 rounded bg-white p-2" src="./assets/roboflow.jpeg"/>
+    <img class="h-12 rounded bg-white p-2" src="./assets/zurich.png"/>
   </div>
 </div>
 
@@ -83,7 +83,7 @@ layout: default
 What happens when we load images?
 
 <div class="flex  gap-1 items-center justify-center" >
-  <img class="h-80 rounded" src="assets/bottlenecks.jpeg"/>
+  <img class="h-80 rounded" src="./assets/bottlenecks.jpeg"/>
 </div>
 
 ---
@@ -98,7 +98,7 @@ What to do?
 - some tasks (object detections) comes with image/labels file pairs
 
 <div class="flex  gap-1 items-center justify-center mt-8" v-click>
-  <img class="h-40 rounded" src="assets/samsung_970.png"/>
+  <img class="h-40 rounded" src="./assets/samsung_970.png"/>
 </div>
 
 <p v-click> we'll see how we can just have one file an `memmap` it u.u </p>
@@ -146,7 +146,7 @@ layout: default
 With normal `PyTorch`, we don't really take advantage of continous virtual memory
 
 <div class="flex items-center justify-center">
-  <img class="h-100 rounded" src="assets/virtual_memory_2.png"/>
+  <img class="h-100 rounded" src="./assets/virtual_memory_2.png"/>
 </div>
 
 ---
@@ -157,7 +157,7 @@ layout: default
 If we `memmap` a file with all the images, in theory yes
 
 <div class="flex items-center justify-center">
-  <img class="h-100 rounded" src="assets/virtual_memory_1.png"/>
+  <img class="h-100 rounded" src="./assets/virtual_memory_1.png"/>
 </div>
 
 ---
@@ -233,7 +233,7 @@ How to benchmark in PyTorch?
 Trace in `chrome://tracing`
 
 <div class="flex items-center justify-center">
-<img class="h-70 rounded" src="assets/trace.png"/>
+<img class="h-70 rounded" src="./assets/trace.png"/>
 </div>
 ---
 layout: default
@@ -273,7 +273,7 @@ layout: default
 I've asked people
 
 <div class="flex  gap-1 items-center justify-center" >
-  <img class="h-70 rounded" src="assets/linkedin_pool.png"/>
+  <img class="h-70 rounded" src="./assets/linkedin_pool.png"/>
 </div>
 
 
@@ -285,7 +285,7 @@ layout: default
 Then benchmark it
 
 <div class="flex  gap-1 items-center justify-center" >
-  <img class="h-70 rounded" src="assets/image_to_cuda_benchmark_batch_size_vs_time.png"/>
+  <img class="h-70 rounded" src="./assets/image_to_cuda_benchmark_batch_size_vs_time.png"/>
 </div>
 
 ---
@@ -379,8 +379,8 @@ NUM_EPOCHES = 10
 ```
 <div class="flex flex-col  gap-1 items-center justify-center">
   <div class="flex  gap-1 items-center justify-center">
-    <img class="h-60 rounded" src="assets/image_to_cuda_model_train_model-cuda_first_batch_size_vs_time_384-384.png"/>
-    <img class="h-60 rounded" src="assets/image_to_cuda_model_train_model-cuda_first_batch_size_vs_time_640-480.png"/>
+    <img class="h-60 rounded" src="./assets/image_to_cuda_model_train_model-cuda_first_batch_size_vs_time_384-384.png"/>
+    <img class="h-60 rounded" src="./assets/image_to_cuda_model_train_model-cuda_first_batch_size_vs_time_640-480.png"/>
   </div>
 </div>
 ---
@@ -392,7 +392,7 @@ The bigger the image the bigger the difference
 
 <div class="flex flex-col  gap-1 items-center justify-center">
   <div class="flex  gap-1 items-center justify-center">
-    <img class="h-80 rounded" src="assets/image_to_cuda_model_train_model-cuda_first_batch_size_vs_time_1280-960.png"/>
+    <img class="h-80 rounded" src="./assets/image_to_cuda_model_train_model-cuda_first_batch_size_vs_time_1280-960.png"/>
   </div>
 </div>
 
@@ -466,8 +466,8 @@ ffmpeg -i "$file" -q:v 3 "$DEST_DIR/${filename}.jpg"
 We went from `3.5MB` to `207KB`. Can you spot the difference? 🕵️‍♂️
 
 <div class="flex  gap-1 items-center justify-center mt-8">
-  <img class="h-60 rounded" src="assets/grogu.jpg"/>
-  <img class="h-60 rounded" src="assets/grogu_compressed.jpg"/>
+  <img class="h-60 rounded" src="./assets/grogu.jpg"/>
+  <img class="h-60 rounded" src="./assets/grogu_compressed.jpg"/>
 </div>
 
 ---
@@ -498,7 +498,7 @@ layout: default
 ### Dataset
 and check the throughput for `uncompressed` and `compressed`
 <div class="flex  gap-1 items-center justify-center mt-8">
-  <img class="h-80 rounded" src="assets/compressed_vs_uncompressed_img_size-benchmark_batch_size_vs_time.png"/>
+  <img class="h-80 rounded" src="./assets/compressed_vs_uncompressed_img_size-benchmark_batch_size_vs_time.png"/>
 </div>
 
 ---
@@ -562,7 +562,7 @@ data.load_memmap("tensors/")
 ```
 
 <div class="flex flex-col gap-1 items-center justify-center mt-8">
-  <img class="h-30 rounded" src="assets/memmap.png"/>
+  <img class="h-30 rounded" src="./assets/memmap.png"/>
 </div>
 
 ---
@@ -671,7 +671,7 @@ layout: default
 Benchmark, `device="cpu"`
 
 <div class="flex flex-col gap-1 items-center justify-center mt-8">
-  <img class="h-80 rounded" src="assets/image_to_cpu_benchmark-memmap-img_size_batch_size_vs_time.png"/>
+  <img class="h-80 rounded" src="./assets/image_to_cpu_benchmark-memmap-img_size_batch_size_vs_time.png"/>
 </div>
 
 ---
@@ -682,7 +682,7 @@ layout: default
 Benchmark, `device="cuda"`
 
 <div class="flex flex-col gap-1 items-center justify-center mt-8">
-  <img class="h-80 rounded" src="assets/memmap_cuda_img_size-memmap_batch_size_vs_time.png"/>
+  <img class="h-80 rounded" src="./assets/memmap_cuda_img_size-memmap_batch_size_vs_time.png"/>
 </div>
 
 ---
@@ -702,5 +702,5 @@ layout: default
  
 <div class="flex flex-col gap-1 items-center justify-center h-full">
   <h1> Thank you 💜</h1>
-  <img class="h-80 rounded" src="assets/baby_yoda_happy.gif"/>
+  <img class="h-80 rounded" src="./assets/baby_yoda_happy.gif"/>
 </div>
