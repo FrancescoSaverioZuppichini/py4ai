@@ -123,4 +123,4 @@ if __name__ == "__main__":
     do_benchmark()
 #  jq 'select(.message.key == "memmap" and .message.device == "cpu")' logs/my_app.log.jsonl -c |
 #  jq '.message' -c  > temp.jsonl && \
-# python scripts/make_plots.py --input_file temp.jsonl --aggregation_keys benchmark key name batch_size --group_by_name benchmark --x_axis batch_size --y_axis time --y_axis_lim 0  --name image_to_cpu
+# python scripts/make_plots.py --input_file temp.jsonl --aggregation_keys benchmark img_size memmap key name batch_size --group_by_name benchmark --x_axis batch_size --y_axis time --y_axis_lim 0  --name image_to_cpu --output_dir plots

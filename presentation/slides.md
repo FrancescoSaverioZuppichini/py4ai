@@ -72,7 +72,6 @@ What are we going to learn?
 - 📊 **Benchmark** - Let's review how to benchmark PyTorch
 - 🔢 **Data Type** - Which data type should I use?
 - 💾 **Memory Optimization** - What happens when we load images into RAM? 
-- 🛠️ **Augmentations** - CPU, GPU or both?
 
 <small> emoji made by our lord GPT-4</small>
 
@@ -125,14 +124,15 @@ layout: default
 ### Memory - Review
 Let's review some system programming stuff hehehe
 
-<div v-click>
-<h4 class="font-semibold">Page</h4>
-A page is a fixed-length contiguous block of virtual memory that represents the smallest unit of data for memory management in a virtual memory system
-</div>
 
 <div v-click>
 <h4 class="font-semibold">Virtual memory</h4>
 Virtual memory is an abstraction of the computer's memory management system that allows an operating system to use both physical RAM and disk space to simulate a larger amount of memory, providing applications with more memory than is physically available on the system
+</div>
+
+<div v-click>
+<h4 class="font-semibold">Page</h4>
+A page is a fixed-length contiguous block of virtual memory that represents the smallest unit of data for memory management in a virtual memory system
 </div>
 
 <p v-click>OS will able to do page caching and access pattern optimization</p>
@@ -167,7 +167,7 @@ layout: default
 # 📊 Benchmark
 How to benchmark in PyTorch?
 
-```python {all|6,7|9,10,11|13|14|17,18,19,20,21,22,23|24,25,26|all}{lines:true,maxHeight:'70%'}
+```python {all|6,7|9,10,11|13|14|17,18,19,20,21,22,23|24-28|all}{lines:true,maxHeight:'70%'}
 import torch
 import torchvision.models as models
 from torch.profiler import profile, record_function, ProfilerActivity
@@ -192,8 +192,10 @@ my_schedule = schedule(
     repeat=2)
 
 with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], schedule=my_schedule) as prof:
-    with record_function("model_inference"):
-        model(inputs)
+    for _ in range(10):
+      with record_function("model_inference"):
+          model(inputs)
+      prof.step()
 ```
 
 <a href="https://pytorch.org/tutorials/recipes/recipes/profiler_recipe.html">Documentation</a>
@@ -444,6 +446,8 @@ layout: default
 
 - ✅ `uint8`
 - ✅  normalise on the model
+- 🤔 image quality
+- 🤔 memory 
 
 <p v-click> What about image quality? </p>
 
@@ -500,8 +504,21 @@ and check the throughput for `uncompressed` and `compressed`
 ---
 layout: default
 ---
+
+## Answers
+
+- ✅ `uint8`
+- ✅ normalise on the model
+- ✅ don't compress images
+- 🤔 memory 
+
+<p v-click> What about memory?></p>
+
+---
+layout: default
+---
  
-# Memory Optimization
+# 💾 Memory Optimization
 Can we optimise memory?
 
 Let' use `TensorDict`(made with 💜 by <a href="https://www.linkedin.com/in/vincent-moens-9bb91972/">Vincent Moens</a>)
@@ -537,7 +554,7 @@ layout: default
 ## Memory Optimization
 We can `memmap` it
 
-```python
+```python {all|1,2|3,4|all }
 # to disk!
 data.memmap("tensors/")
 # from disk - let's gooooo
@@ -555,7 +572,7 @@ layout: default
 ## Memory Optimization
 Building the dataset
 
-```python
+```python {all|7-10|13-23|25|27-36|all}{maxHeight:'70%'}
 
 @tensorclass
 class Data:
@@ -604,7 +621,7 @@ layout: default
 ## Memory Optimization
 And using it
 
-```python
+```python {all|17-19|20-22|23|24-34|35-38| all}{maxHeight:'70%'}
 
 class Collate(nn.Module):
     def __init__(self, device=None):
@@ -629,7 +646,6 @@ if __name__ == "__main__":
     print(ds[0])
     ds = Data.from_dataset(Path("tensors") / ds.src.stem, ds)
     # creating a dl
-
     dl = DataLoader(
         ds,
         batch_size,
@@ -668,6 +684,17 @@ Benchmark, `device="cuda"`
 <div class="flex flex-col gap-1 items-center justify-center mt-8">
   <img class="h-80 rounded" src="assets/memmap_cuda_img_size-memmap_batch_size_vs_time.png"/>
 </div>
+
+---
+layout: default
+---
+
+## Answers
+
+- ✅ `uint8`
+- ✅ normalise on the model
+- ✅ don't compress images
+- ✅ use `memmap` 
 
 ---
 layout: default
