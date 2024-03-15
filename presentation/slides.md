@@ -621,7 +621,7 @@ layout: default
 ## Memory Optimization
 And using it
 
-```python {all|17-19|20-22|23|24-34|35-38| all}{maxHeight:'70%'}
+```python {all|17-19|20-22|23|24-34|35-38|all}{maxHeight:'70%'}
 
 class Collate(nn.Module):
     def __init__(self, device=None):
