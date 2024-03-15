@@ -1,8 +1,9 @@
 import datetime as dt
-from rich.console import Console
-from rich.table import Table
 import json
 import logging
+
+from rich.console import Console
+from rich.table import Table
 from typing_extensions import override
 
 LOG_RECORD_BUILTIN_ATTRS = {
@@ -49,7 +50,9 @@ class MyJSONFormatter(logging.Formatter):
     def _prepare_log_dict(self, record: logging.LogRecord):
         # Base structure of the log message
         log_dict = {
-            "timestamp": dt.datetime.fromtimestamp(record.created, tz=dt.timezone.utc).isoformat(),
+            "timestamp": dt.datetime.fromtimestamp(
+                record.created, tz=dt.timezone.utc
+            ).isoformat(),
         }
 
         # If the log message is a dictionary, handle it specially to ensure it stays in JSON format
@@ -83,8 +86,6 @@ class MyJSONFormatter(logging.Formatter):
                 log_dict[attr] = record.__dict__[attr]
 
         return log_dict
-
-
 
 
 from rich.logging import RichHandler
