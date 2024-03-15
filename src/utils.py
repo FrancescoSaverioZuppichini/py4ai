@@ -17,5 +17,4 @@ def get_logger(logger_name: Optional[str] = None) -> logging.Logger:
 def get_torch_profiler() -> profile:
     return profile(
         activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
-        schedule=schedule(wait=0, warmup=4, active=6),
     )

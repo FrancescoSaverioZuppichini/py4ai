@@ -20,7 +20,6 @@ IMAGE_SIZES = [(384, 384), (640, 480), (1280, 960)]
 BATCH_SIZES = [8, 16, 32, 64]
 NUM_EPOCHES = 10
 
-
 def run_model_train(
     ds: Dataset,
     batch_size: int,

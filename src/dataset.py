@@ -11,7 +11,6 @@ from torchvision.io import read_image
 from tqdm import tqdm
 
 
-
 class FolderDataset(Dataset):
     def __init__(self, src: Path):
         self.src = src
@@ -87,11 +86,17 @@ class Collate(nn.Module):
     def __call__(self, x: Data) -> Data:
         out = x
         if self.device == "cuda":
-            out = x.to(self.device, non_blocking=True)
+            out = out._fast_apply(
+                lambda x: x.pin_memory().to(self.device, non_blocking=True),
+                device=self.device,
+            )
         return out
 
 
 if __name__ == "__main__":
+    import multiprocessing
+
+    multiprocessing.set_start_method("spawn", force=True)
     # ds = DummyDataset(num_images=10, img_size=(640, 480))
     # print(ds[0])
     ds = FolderDataset(Path("data/compressed_q:v3_640_480"))
@@ -99,14 +104,14 @@ if __name__ == "__main__":
     ds = Data.from_dataset(Path("tensors") / ds.src.stem, ds)
     batch_size = 8
     dl = DataLoader(
-            ds,
-            batch_size,
-            num_workers=8,
-            # pin_memory=False if memmap else True,
-            collate_fn=Collate("cuda"),
-        )
-
-    for _ in range(2):
-        for batch in dl:
+        ds,
+        batch_size,
+        num_workers=8,
+        persistent_workers=True,
+        # pin_memory=False if memmap else True,
+        collate_fn=Collate("cuda"),
+    )
+    for _ in range(4):
+        for batch in tqdm(dl):
+            # pass
             print(batch.images.device.type)
-

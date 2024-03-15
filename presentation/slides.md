@@ -553,10 +553,120 @@ layout: default
 ---
  
 ## Memory Optimization
+Building the dataset
+
+```python
+
+@tensorclass
+class Data:
+    images: torch.Tensor
+    targets: torch.Tensor
+
+    @classmethod
+    def from_dataset(
+        cls, out_dir: Path, dataset: FolderDataset, batch_size: int = 64
+    ) -> Data:
+        out_dir.mkdir(exist_ok=True, parents=True)
+        # borrow and adapted from https://pytorch.org/tensordict/tutorials/tensorclass_imagenet.html
+        data = cls(
+            images=MemoryMappedTensor.empty(
+                (
+                    len(dataset),
+                    *dataset[0][0].squeeze().shape,
+                ),
+                dtype=torch.uint8,
+            ),
+            targets=MemoryMappedTensor.empty((len(dataset),), dtype=torch.int64),
+            batch_size=[len(dataset)],
+        )
+        # locks the tensorclass and ensures that is_memmap will return True.
+        data.memmap_(str(out_dir))
+
+        dl = DataLoader(dataset, batch_size=batch_size, num_workers=min(batch_size, 8))
+        i = 0
+        pbar = tqdm(total=len(dataset))
+        for image, target in dl:
+            _batch = image.shape[0]
+            pbar.update(_batch)
+            data[i : i + _batch] = cls(
+                images=image, targets=target, batch_size=[_batch]
+            )
+            i += _batch
+
+        return data
+
+```
+
+---
+layout: default
+---
+
+## Memory Optimization
+And using it
+
+```python
+
+class Collate(nn.Module):
+    def __init__(self, device=None):
+        super().__init__()
+        self.device = device
+
+    def __call__(self, x: Data) -> Data:
+        out = x
+        if self.device == "cuda":
+            out = out._fast_apply(
+                lambda x: x.pin_memory().to(self.device, non_blocking=True),
+                device=self.device,
+            )
+        return out
+
+if __name__ == "__main__":
+    # need to this otherwise CUDA explodes
+    import multiprocessing
+    multiprocessing.set_start_method("spawn", force=True)
+    # getting a dataset
+    ds = FolderDataset(Path("data/compressed_q:v3_640_480"))
+    print(ds[0])
+    ds = Data.from_dataset(Path("tensors") / ds.src.stem, ds)
+    # creating a dl
+
+    dl = DataLoader(
+        ds,
+        batch_size,
+        num_workers=8,
+        # persistent workers otherwise old processes may not have releasing the CUDA tensors
+        persistent_workers=True,
+        # no pin_memory, we are doing it manually
+        pin_memory=False
+        collate_fn=Collate("cuda"),
+    )
+    for _ in range(4):
+        for batch in tqdm(dl):
+            print(batch.images.device.type)
+            # cudaaaaaaaaaa
+
+```
+
+---
+layout: default
+---
+ 
+## Memory Optimization
 Benchmark, `device="cpu"`
 
 <div class="flex flex-col gap-1 items-center justify-center mt-8">
-  <img class="h-80 rounded" src="assets/memmap_img_size-memmap_batch_size_vs_time.png"/>
+  <img class="h-80 rounded" src="assets/image_to_cpu_benchmark-memmap-img_size_batch_size_vs_time.png"/>
+</div>
+
+---
+layout: default
+---
+ 
+## Memory Optimization
+Benchmark, `device="cuda"`
+
+<div class="flex flex-col gap-1 items-center justify-center mt-8">
+  <img class="h-80 rounded" src="assets/memmap_cuda_img_size-memmap_batch_size_vs_time.png"/>
 </div>
 
 ---

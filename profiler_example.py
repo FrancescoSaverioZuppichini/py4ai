@@ -6,41 +6,48 @@ from torch.profiler import schedule
 model = models.resnet18().cuda()
 inputs = torch.randn(5, 3, 224, 224).cuda()
 
-with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
-    with record_function("model_inference"):
-        model(inputs)
-
-print(
-    prof.key_averages(group_by_input_shape=True).table(
-        sort_by="cpu_time_total", row_limit=10
-    )
-)
-prof.export_chrome_trace("trace.json")
-
-# # you can also create a schedule
-# my_schedule = schedule(
-#     skip_first=10,
-#     wait=5,
-#     warmup=1,
-#     active=3,
-#     repeat=2)
-
-# with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], schedule=my_schedule) as prof:
+# with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
 #     with record_function("model_inference"):
 #         model(inputs)
 
-model = models.resnet18().cuda()
-inputs = torch.randn(5, 3, 224, 224)
+# print(
+#     prof.key_averages(group_by_input_shape=True).table(
+#         sort_by="cpu_time_total", row_limit=10
+#     )
+# )
+# prof.export_chrome_trace("trace.json")
 
-with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
-    with record_function("inputs_to_cuda"):
-        inputs = inputs.cuda()
-    with record_function("model_inference"):
-        model(inputs)
+# you can also create a schedule
+my_schedule = schedule(
+    skip_first=0,
+    wait=1,
+    warmup=4,
+    active=5)
 
-print(
-    prof.key_averages(group_by_input_shape=True).table(
-        sort_by="cpu_time_total", row_limit=10
-    )
-)
-prof.export_chrome_trace("trace2.json")
+def trace_handler(p):
+    output = p.key_averages().table(sort_by="self_cuda_time_total", row_limit=10)
+    print("trace_handler")
+    print(output)
+    p.export_chrome_trace("trace_" + str(p.step_num) + ".json")
+
+with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], schedule=my_schedule) as prof:
+    for _ in range(10):
+        with record_function("model_inference"):
+            model(inputs)
+        prof.step()
+
+# model = models.resnet18().cuda()
+# inputs = torch.randn(5, 3, 224, 224)
+
+# with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
+#     with record_function("inputs_to_cuda"):
+#         inputs = inputs.cuda()
+#     with record_function("model_inference"):
+#         model(inputs)
+
+# print(
+#     prof.key_averages(group_by_input_shape=True).table(
+#         sort_by="cpu_time_total", row_limit=10
+#     )
+# )
+# prof.export_chrome_trace("trace2.json")
