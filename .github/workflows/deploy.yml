@@ -8,7 +8,6 @@ on:
     paths:
       - .github/workflows/deploy.yml
       - presentation/slides.md
-      - presentation/presentation
       - presentation/package.json
       - presentation/package-lock.json
 
@@ -23,18 +22,18 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v4
         with:
-          node-version-file: '.tool-versions'
+          node-version-file: '20' # Make sure this points to the file within the presentation directory
 
       - name: Install dependencies
-        run: npm install
+        run: cd presentation && npm install # Change directory to presentation before install
 
       - name: Build HTML
-        run: npx slidev build --base=/pydata-global-2023-functime
+        run: cd presentation && npx slidev build --base=/pydata-global-2023-functime # Change directory to presentation before build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
         with:
-          path: dist
+          path: presentation/dist # Specify the correct path for the artifact
 
   deploy:
     needs: build
