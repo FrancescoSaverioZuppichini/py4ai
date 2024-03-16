@@ -1,3 +1,10 @@
+# How to Efficiently Send Images to GPU 📸 🚀
+
+Code + slides (@ `presentation/`) for my talk at **Py4AI**
+
+> [!WARNING]  
+> The code is shit 💩
+
 ### Making plots
 
 ```bash
